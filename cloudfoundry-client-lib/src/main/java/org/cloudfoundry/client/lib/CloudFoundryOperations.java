@@ -297,6 +297,14 @@ public interface CloudFoundryOperations {
 	List<CloudApplication> getApplications();
 
 	/**
+	 * Get all cloud applications.
+	 *
+	 * @param inlineRelationsDepth depth of the inline relations to retrieve for the cloud applications
+	 * @return list of cloud applications
+	 */
+	List<CloudApplication> getApplications(int inlineRelationsDepth);
+
+	/**
 	 * Get cloud application with the specified name.
 	 *
 	 * @param appName name of the app

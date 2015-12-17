@@ -1050,13 +1050,19 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 
 	@Override
 	public List<CloudApplication> getApplications() {
+		return getApplications(1);
+	}
+
+	@Override
+	public List<CloudApplication> getApplications(int inlineRelationsDepth) {
 		Map<String, Object> urlVars = new HashMap<String, Object>();
 		String urlPath = "/v2";
 		if (sessionSpace != null) {
 			urlVars.put("space", sessionSpace.getMeta().getGuid());
 			urlPath = urlPath + "/spaces/{space}";
 		}
-		urlPath = urlPath + "/apps?inline-relations-depth=1";
+		urlVars.put("ird", inlineRelationsDepth);
+		urlPath = urlPath + "/apps?inline-relations-depth={ird}";
 		List<Map<String, Object>> resourceList = getAllResources(urlPath, urlVars);
 		List<CloudApplication> apps = new ArrayList<CloudApplication>();
 		for (Map<String, Object> resource : resourceList) {
