@@ -1,69 +1,7 @@
 package org.cloudfoundry.client.lib;
 
-import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.commons.io.IOUtils;
-import org.cloudfoundry.client.lib.domain.ApplicationLog;
-import org.cloudfoundry.client.lib.domain.ApplicationStats;
-import org.cloudfoundry.client.lib.domain.CloudApplication;
-import org.cloudfoundry.client.lib.domain.CloudDomain;
-import org.cloudfoundry.client.lib.domain.CloudEntity;
-import org.cloudfoundry.client.lib.domain.CloudEvent;
-import org.cloudfoundry.client.lib.domain.CloudInfo;
-import org.cloudfoundry.client.lib.domain.CloudOrganization;
-import org.cloudfoundry.client.lib.domain.CloudQuota;
-import org.cloudfoundry.client.lib.domain.CloudRoute;
-import org.cloudfoundry.client.lib.domain.CloudSecurityGroup;
-import org.cloudfoundry.client.lib.domain.CloudService;
-import org.cloudfoundry.client.lib.domain.CloudServiceBinding;
-import org.cloudfoundry.client.lib.domain.CloudServiceBroker;
-import org.cloudfoundry.client.lib.domain.CloudServiceInstance;
-import org.cloudfoundry.client.lib.domain.CloudServiceOffering;
-import org.cloudfoundry.client.lib.domain.CloudServicePlan;
-import org.cloudfoundry.client.lib.domain.CloudSpace;
-import org.cloudfoundry.client.lib.domain.CloudStack;
-import org.cloudfoundry.client.lib.domain.CrashInfo;
-import org.cloudfoundry.client.lib.domain.CrashesInfo;
-import org.cloudfoundry.client.lib.domain.InstanceInfo;
-import org.cloudfoundry.client.lib.domain.InstanceState;
-import org.cloudfoundry.client.lib.domain.InstanceStats;
-import org.cloudfoundry.client.lib.domain.InstancesInfo;
-import org.cloudfoundry.client.lib.domain.SecurityGroupRule;
-import org.cloudfoundry.client.lib.domain.Staging;
-import org.cloudfoundry.client.lib.domain.CloudUser;
+import org.cloudfoundry.client.lib.domain.*;
 import org.cloudfoundry.client.lib.oauth2.OauthClient;
 import org.cloudfoundry.client.lib.rest.CloudControllerClient;
 import org.cloudfoundry.client.lib.rest.CloudControllerClientFactory;
@@ -76,14 +14,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.jboss.byteman.contrib.bmunit.BMScript;
 import org.jboss.byteman.contrib.bmunit.BMUnitRunner;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -103,6 +34,18 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.*;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * Note that this integration tests rely on other methods working correctly, so these tests aren't
@@ -640,6 +583,25 @@ public class CloudFoundryClientTest {
 	}
 
 	@Test
+	public void getApplicationsWithGetBareInformationOnly() {
+		final String serviceName = "test_database";
+		String appName = createSpringTravelApp("2", Collections.singletonList(serviceName));
+		List<CloudApplication> apps = connectedClient.getApplications(true);
+		assertEquals(1, apps.size());
+
+		CloudApplication app = apps.get(0);
+		assertEquals(appName, app.getName());
+		assertNotNull(app.getMeta());
+		assertNotNull(app.getMeta().getGuid());
+
+		assertEquals(0, app.getServices().size());
+
+		createSpringTravelApp("3");
+		apps = connectedClient.getApplications(true);
+		assertEquals(2, apps.size());
+	}
+
+	@Test
 	public void deleteApplication() {
 		String appName = createSpringTravelApp("4");
 		assertEquals(1, connectedClient.getApplications().size());
@@ -924,6 +886,22 @@ public class CloudFoundryClientTest {
 	public void getApplicationsMatchGetApplication() {
 		String appName = createSpringTravelApp("1");
 		List<CloudApplication> apps = connectedClient.getApplications();
+		assertEquals(1, apps.size());
+		CloudApplication app = connectedClient.getApplication(appName);
+		assertEquals(app.getName(), apps.get(0).getName());
+		assertEquals(app.getState(), apps.get(0).getState());
+		assertEquals(app.getInstances(), apps.get(0).getInstances());
+		assertEquals(app.getMemory(), apps.get(0).getMemory());
+		assertEquals(app.getMeta().getGuid(), apps.get(0).getMeta().getGuid());
+		assertEquals(app.getMeta().getCreated(), apps.get(0).getMeta().getCreated());
+		assertEquals(app.getMeta().getUpdated(), apps.get(0).getMeta().getUpdated());
+		assertEquals(app.getUris(), apps.get(0).getUris());
+	}
+
+	@Test
+	public void getApplicationsWithGetBareInformationOnlyMatchGetApplication() {
+		String appName = createSpringTravelApp("1");
+		List<CloudApplication> apps = connectedClient.getApplications(true);
 		assertEquals(1, apps.size());
 		CloudApplication app = connectedClient.getApplication(appName);
 		assertEquals(app.getName(), apps.get(0).getName());

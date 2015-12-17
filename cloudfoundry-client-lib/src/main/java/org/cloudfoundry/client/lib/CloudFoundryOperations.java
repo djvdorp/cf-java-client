@@ -297,6 +297,14 @@ public interface CloudFoundryOperations {
 	List<CloudApplication> getApplications();
 
 	/**
+	 * Get all cloud applications.
+	 *
+	 * @param getBareInformationOnly only retrieve the bare amount needed to fill the cloud application objects themselves, instead of their whole object graph
+	 * @return list of cloud applications
+	 */
+	List<CloudApplication> getApplications(boolean getBareInformationOnly);
+
+	/**
 	 * Get cloud application with the specified name.
 	 *
 	 * @param appName name of the app
