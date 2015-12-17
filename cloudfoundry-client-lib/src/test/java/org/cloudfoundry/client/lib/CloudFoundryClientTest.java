@@ -640,6 +640,25 @@ public class CloudFoundryClientTest {
 	}
 
 	@Test
+	public void getApplicationsWithInlineRelationsDepthZero() {
+		final String serviceName = "test_database";
+		String appName = createSpringTravelApp("2", Collections.singletonList(serviceName));
+		List<CloudApplication> apps = connectedClient.getApplications(0);
+		assertEquals(1, apps.size());
+
+		CloudApplication app = apps.get(0);
+		assertEquals(appName, app.getName());
+		assertNotNull(app.getMeta());
+		assertNotNull(app.getMeta().getGuid());
+
+		assertEquals(0, app.getServices().size());
+
+		createSpringTravelApp("3");
+		apps = connectedClient.getApplications(0);
+		assertEquals(2, apps.size());
+	}
+
+	@Test
 	public void deleteApplication() {
 		String appName = createSpringTravelApp("4");
 		assertEquals(1, connectedClient.getApplications().size());
@@ -924,6 +943,22 @@ public class CloudFoundryClientTest {
 	public void getApplicationsMatchGetApplication() {
 		String appName = createSpringTravelApp("1");
 		List<CloudApplication> apps = connectedClient.getApplications();
+		assertEquals(1, apps.size());
+		CloudApplication app = connectedClient.getApplication(appName);
+		assertEquals(app.getName(), apps.get(0).getName());
+		assertEquals(app.getState(), apps.get(0).getState());
+		assertEquals(app.getInstances(), apps.get(0).getInstances());
+		assertEquals(app.getMemory(), apps.get(0).getMemory());
+		assertEquals(app.getMeta().getGuid(), apps.get(0).getMeta().getGuid());
+		assertEquals(app.getMeta().getCreated(), apps.get(0).getMeta().getCreated());
+		assertEquals(app.getMeta().getUpdated(), apps.get(0).getMeta().getUpdated());
+		assertEquals(app.getUris(), apps.get(0).getUris());
+	}
+
+	@Test
+	public void getApplicationsWithInlineRelationsDepthZeroMatchGetApplication() {
+		String appName = createSpringTravelApp("1");
+		List<CloudApplication> apps = connectedClient.getApplications(0);
 		assertEquals(1, apps.size());
 		CloudApplication app = connectedClient.getApplication(appName);
 		assertEquals(app.getName(), apps.get(0).getName());

@@ -222,6 +222,10 @@ public class CloudFoundryClient implements CloudFoundryOperations {
 		return cc.getApplications();
 	}
 
+	public List<CloudApplication> getApplications(int inlineRelationsDepth) {
+		return cc.getApplications(inlineRelationsDepth);
+	}
+
 	public CloudApplication getApplication(String appName) {
 		return cc.getApplication(appName);
 	}

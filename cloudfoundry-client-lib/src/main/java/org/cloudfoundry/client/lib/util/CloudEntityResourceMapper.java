@@ -191,6 +191,7 @@ public class CloudEntityResourceMapper {
 		String command = getEntityAttribute(resource, "command", String.class);
 		String buildpack = getEntityAttribute(resource, "buildpack", String.class);
 		String detectedBuildpack = getEntityAttribute(resource, "detected_buildpack", String.class);
+
 		Map<String, Object> stackResource = getEmbeddedResource(resource, "stack");
 		CloudStack stack = mapStackResource(stackResource);
 		Integer healthCheckTimeout = getEntityAttribute(resource, "health_check_timeout", Integer.class);
@@ -198,8 +199,10 @@ public class CloudEntityResourceMapper {
 		app.setStaging(staging);
 
 		Map<String, Object> spaceResource = getEmbeddedResource(resource, "space");
-		CloudSpace space = mapSpaceResource(spaceResource);
-		app.setSpace(space);
+		if (spaceResource != null) {
+			CloudSpace space = mapSpaceResource(spaceResource);
+			app.setSpace(space);
+		}
 
 		Map envMap = getEntityAttribute(resource, "environment_json", Map.class);
 		if (envMap.size() > 0) {

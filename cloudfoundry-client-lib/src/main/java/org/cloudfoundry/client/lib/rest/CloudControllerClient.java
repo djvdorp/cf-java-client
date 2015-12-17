@@ -122,6 +122,8 @@ public interface CloudControllerClient {
 
 	List<CloudApplication> getApplications();
 
+	List<CloudApplication> getApplications(int inlineRelationsDepth);
+
 	CloudApplication getApplication(String appName);
 
 	CloudApplication getApplication(UUID appGuid);
