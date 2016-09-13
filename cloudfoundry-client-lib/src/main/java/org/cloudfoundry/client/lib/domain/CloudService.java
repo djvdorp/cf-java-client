@@ -29,6 +29,7 @@ public class CloudService extends CloudEntity {
 
 	private String label;
 	private String plan;
+	private String appName;
 
 	public CloudService() {
 		super();
@@ -72,5 +73,13 @@ public class CloudService extends CloudEntity {
 
 	public void setPlan(String plan) {
 		this.plan = plan;
+	}
+
+	public String getAppName() {
+		return appName;
+	}
+
+	public void setAppName(String appName) {
+		this.appName = appName;
 	}
 }
