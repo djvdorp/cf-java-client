@@ -2292,7 +2292,7 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 
 	@SuppressWarnings("unchecked")
 	private UUID getAppId(String appName) {
-		Map<String, Object> resource = findApplicationResource(appName, false);
+		Map<String, Object> resource = findApplicationResource(appName, false, 0);
 		UUID guid = null;
 		if (resource != null) {
 			Map<String, Object> appMeta = (Map<String, Object>) resource.get("metadata");
@@ -2354,8 +2354,7 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 		return processApplicationResource(JsonUtil.convertJsonToMap(resp), fetchServiceInfo);
 	}
 
-
-	private Map<String, Object> findApplicationResource(String appName, boolean fetchServiceInfo) {
+	private Map<String, Object> findApplicationResource(String appName, boolean fetchServiceInfo, int maxDepth) {
 		Map<String, Object> urlVars = new HashMap<String, Object>();
 		String urlPath = "/v2";
 		if (sessionSpace != null) {
@@ -2363,13 +2362,17 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 			urlPath = urlPath + "/spaces/{space}";
 		}
 		urlVars.put("q", "name:" + appName);
-		urlPath = urlPath + "/apps?inline-relations-depth=1&q={q}";
+		urlPath = urlPath + "/apps?inline-relations-depth=" + maxDepth + "&q={q}";
 
 		List<Map<String, Object>> allResources = getAllResources(urlPath, urlVars);
 		if(!allResources.isEmpty()) {
 			return processApplicationResource(allResources.get(0), fetchServiceInfo);
 		}
 		return null;
+    }
+
+	private Map<String, Object> findApplicationResource(String appName, boolean fetchServiceInfo) {
+	    return findApplicationResource(appName, fetchServiceInfo, 1);
 	}
 
 	private Map<String, Object> processApplicationResource(Map<String, Object> resource, boolean fetchServiceInfo) {
