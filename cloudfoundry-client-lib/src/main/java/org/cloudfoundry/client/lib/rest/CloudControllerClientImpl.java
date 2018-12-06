@@ -47,6 +47,8 @@ import org.springframework.util.FileCopyUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.*;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 /**
  * Abstract implementation of the CloudControllerClient intended to serve as the base.
@@ -67,7 +69,11 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 	private static final String LOGS_LOCATION = "logs";
 	private static final long JOB_POLLING_PERIOD = TimeUnit.SECONDS.toMillis(5);
 	private static final long JOB_TIMEOUT = TimeUnit.MINUTES.toMillis(3);
+	private static final Cache<String, UUID> cachedAppIds =
+		CacheBuilder.newBuilder().expireAfterAccess(24, TimeUnit.HOURS).build();
 
+	private static final Cache<String, CloudSpace> cachedSpaces =
+		CacheBuilder.newBuilder().expireAfterAccess(24, TimeUnit.HOURS).build();
 	private OauthClient oauthClient;
 
 	private CloudSpace sessionSpace;
@@ -533,14 +539,20 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 
 	@Override
 	public CloudSpace getSpace(String spaceName) {
+		CloudSpace space = cachedSpaces.getIfPresent(spaceName);
+		if (space != null) {
+			return space;
+		}
 		String urlPath = "/v2/spaces?inline-relations-depth=1&q=name:{name}";
 		HashMap<String, Object> spaceRequest = new HashMap<String, Object>();
 		spaceRequest.put("name", spaceName);
 		List<Map<String, Object>> resourceList = getAllResources(urlPath, spaceRequest);
-		CloudSpace space = null;
 		if (resourceList.size() > 0) {
 			Map<String, Object> resource = resourceList.get(0);
 			space = resourceMapper.mapResource(resource, CloudSpace.class);
+			if (space != null) {
+				cachedSpaces.put(spaceName, space);
+			}
 		}
 		return space;
 	}
@@ -2292,11 +2304,18 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 
 	@SuppressWarnings("unchecked")
 	private UUID getAppId(String appName) {
-		Map<String, Object> resource = findApplicationResource(appName, false);
+		UUID appId = cachedAppIds.getIfPresent(appName);
+		if (appId != null) {
+			return appId;
+		}
+		Map<String, Object> resource = findApplicationResource(appName, false, 0);
 		UUID guid = null;
 		if (resource != null) {
 			Map<String, Object> appMeta = (Map<String, Object>) resource.get("metadata");
 			guid = UUID.fromString(String.valueOf(appMeta.get("guid")));
+			if (guid != null){
+				cachedAppIds.put(appName, guid);
+			}
 		}
 		return guid;
 	}
@@ -2354,8 +2373,7 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 		return processApplicationResource(JsonUtil.convertJsonToMap(resp), fetchServiceInfo);
 	}
 
-
-	private Map<String, Object> findApplicationResource(String appName, boolean fetchServiceInfo) {
+	private Map<String, Object> findApplicationResource(String appName, boolean fetchServiceInfo, int maxDepth) {
 		Map<String, Object> urlVars = new HashMap<String, Object>();
 		String urlPath = "/v2";
 		if (sessionSpace != null) {
@@ -2363,13 +2381,17 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 			urlPath = urlPath + "/spaces/{space}";
 		}
 		urlVars.put("q", "name:" + appName);
-		urlPath = urlPath + "/apps?inline-relations-depth=1&q={q}";
+		urlPath = urlPath + "/apps?inline-relations-depth=" + maxDepth + "&q={q}";
 
 		List<Map<String, Object>> allResources = getAllResources(urlPath, urlVars);
 		if(!allResources.isEmpty()) {
 			return processApplicationResource(allResources.get(0), fetchServiceInfo);
 		}
 		return null;
+    }
+
+	private Map<String, Object> findApplicationResource(String appName, boolean fetchServiceInfo) {
+	    return findApplicationResource(appName, fetchServiceInfo, 1);
 	}
 
 	private Map<String, Object> processApplicationResource(Map<String, Object> resource, boolean fetchServiceInfo) {
