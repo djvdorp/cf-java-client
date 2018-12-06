@@ -47,6 +47,8 @@ import org.springframework.util.FileCopyUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.*;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 /**
  * Abstract implementation of the CloudControllerClient intended to serve as the base.
@@ -67,6 +69,8 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 	private static final String LOGS_LOCATION = "logs";
 	private static final long JOB_POLLING_PERIOD = TimeUnit.SECONDS.toMillis(5);
 	private static final long JOB_TIMEOUT = TimeUnit.MINUTES.toMillis(3);
+	private static final Cache<String, UUID> cachedAppIds =
+            CacheBuilder.newBuilder().expireAfterAccess(24, TimeUnit.HOURS).build();
 
 	private OauthClient oauthClient;
 
@@ -2292,11 +2296,18 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 
 	@SuppressWarnings("unchecked")
 	private UUID getAppId(String appName) {
+		UUID appId = cachedAppIds.getIfPresent(appName);
+		if (appId != null) {
+			return appId;
+		}
 		Map<String, Object> resource = findApplicationResource(appName, false, 0);
 		UUID guid = null;
 		if (resource != null) {
 			Map<String, Object> appMeta = (Map<String, Object>) resource.get("metadata");
 			guid = UUID.fromString(String.valueOf(appMeta.get("guid")));
+			if (guid != null){
+				cachedAppIds.put(appName, guid);
+			}
 		}
 		return guid;
 	}
