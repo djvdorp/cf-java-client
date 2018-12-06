@@ -70,8 +70,10 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 	private static final long JOB_POLLING_PERIOD = TimeUnit.SECONDS.toMillis(5);
 	private static final long JOB_TIMEOUT = TimeUnit.MINUTES.toMillis(3);
 	private static final Cache<String, UUID> cachedAppIds =
-            CacheBuilder.newBuilder().expireAfterAccess(24, TimeUnit.HOURS).build();
+		CacheBuilder.newBuilder().expireAfterAccess(24, TimeUnit.HOURS).build();
 
+	private static final Cache<String, CloudSpace> cachedSpaces =
+		CacheBuilder.newBuilder().expireAfterAccess(24, TimeUnit.HOURS).build();
 	private OauthClient oauthClient;
 
 	private CloudSpace sessionSpace;
@@ -537,14 +539,20 @@ public class CloudControllerClientImpl implements CloudControllerClient {
 
 	@Override
 	public CloudSpace getSpace(String spaceName) {
+		CloudSpace space = cachedSpaces.getIfPresent(spaceName);
+		if (space != null) {
+			return space;
+		}
 		String urlPath = "/v2/spaces?inline-relations-depth=1&q=name:{name}";
 		HashMap<String, Object> spaceRequest = new HashMap<String, Object>();
 		spaceRequest.put("name", spaceName);
 		List<Map<String, Object>> resourceList = getAllResources(urlPath, spaceRequest);
-		CloudSpace space = null;
 		if (resourceList.size() > 0) {
 			Map<String, Object> resource = resourceList.get(0);
 			space = resourceMapper.mapResource(resource, CloudSpace.class);
+			if (space != null) {
+				cachedSpaces.put(spaceName, space);
+			}
 		}
 		return space;
 	}
