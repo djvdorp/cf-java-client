@@ -21,7 +21,7 @@
 		<spring.framework.version>3.0.7.RELEASE</spring.framework.version>
 		<spring.data.mongo.version>1.0.1.RELEASE</spring.data.mongo.version>
 		<spring.data.redis.version>1.0.0.RELEASE</spring.data.redis.version>
-		<spring.amqp.version>1.0.0.RELEASE</spring.amqp.version>
+		<spring.amqp.version>2.4.17</spring.amqp.version>
 		<org.slf4j-version>1.5.10</org.slf4j-version>
 	</properties>
 
